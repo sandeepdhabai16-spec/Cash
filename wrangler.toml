@@ -3,7 +3,7 @@ main = "index.js"
 compatibility_date = "2026-09-25"
 
 # ========================
-# KV Namespace for cooldown
+# KV Namespace for cooldownl
 # ========================
 [[kv_namespaces]]
 binding = "COOLDOWN_KV"
