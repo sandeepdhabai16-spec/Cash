@@ -1,12 +1,9 @@
 // ========================
-// FlareGun — random IP rotation
+// Simple fetch wrapper (FlareGun removed)
 // ========================
-import { FlareGun } from "flaregun";
-
-const fg = new FlareGun({
-    apiToken: "cfut_W31OSTMgAystUij6nmPbfvvZPUtNliT2fdECQ1na535d537a",
-    accountId: "e4090ee1d3e9226b0fc137d95ad99a0d"
-});
+const fg = {
+    fetch: (url, opts) => fetch(url, opts)
+};
 
 const COOLDOWN_SECONDS = 30;
 
@@ -220,7 +217,6 @@ async function setCooldown(env, phone) {
     if (!env || !env.COOLDOWN_KV) return;
     const key = `cd:${phone}`;
     const expiresAt = Date.now() + COOLDOWN_SECONDS * 1000;
-    // KV expirationTtl minimum is 60s, so we store absolute timestamp and check manually
     await env.COOLDOWN_KV.put(key, String(expiresAt), { expirationTtl: 60 });
 }
 
@@ -269,7 +265,6 @@ export default {
 
         const successCount = results.filter(r => r.success).length;
 
-        // ✅ Set cooldown after sending
         await setCooldown(env, clean);
 
         return new Response(JSON.stringify({
