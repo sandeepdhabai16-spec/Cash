@@ -2,9 +2,6 @@ name = "my-otp-worker"
 main = "index.js"
 compatibility_date = "2026-09-25"
 
-# ========================
-# KV Namespace for cooldownl
-# ========================
 [[kv_namespaces]]
 binding = "COOLDOWN_KV"
-id = "REPLACE_WITH_YOUR_KV_ID"
+id = "ae3fcb94da734ea4bbeaed105c612edb"
